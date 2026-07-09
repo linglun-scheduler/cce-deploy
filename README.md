@@ -70,6 +70,133 @@ zip -r /tmp/awx-24.6.1.zip awx/
 #    我的服务 → 私有服务 → 上传服务
 ```
 
+## AWX 容器架构
+
+### 总体架构
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                     cloud 命名空间                           │
+│                                                              │
+│  ┌────────────────────────┐   ┌────────────────────────┐    │
+│  │      awx-operator      │   │     awx-postgres-15     │    │
+│  │  (1 容器: awx-operator)│   │  (1 容器: postgresql)   │    │
+│  │  • 监听 AWX CR 变化     │   │  • 持久化: 10Gi SSD    │    │
+│  │  • 自动创建/管理资源    │   │  • 存储 AWX 业务数据   │    │
+│  └──────────┬─────────────┘   └────────────────────────┘    │
+│             │ 管理 AWX CR                                    │
+│             ▼                                                │
+│  ┌────────────────────────────────────────────────────┐     │
+│  │                    awx-web                         │     │
+│  │  ┌─────────┐ ┌──────────┐ ┌──────────┐            │     │
+│  │  │  nginx  │ │  uwsgi   │ │  daphne  │ ← 3 容器   │     │
+│  │  │ (反向代理│ │ (Django  │ │ (WebSocket│           │     │
+│  │  │  + 静态)│ │  API)    │ │  服务)   │           │     │
+│  │  └─────────┘ └──────────┘ └──────────┘            │     │
+│  └────────────────────────────────────────────────────┘     │
+│                                                              │
+│  ┌────────────────────────────────────────────────────┐     │
+│  │                    awx-task                        │     │
+│  │  ┌──────────┐ ┌────────┐ ┌────────┐ ┌─────────┐   │     │
+│  │  │ awx-task │ │ awx-ee │ │  redis │ │ rsyslog │   │     │
+│  │  │ (作业执行│ │ (Recep-│ │ (缓存/ │ │ (日志   │   │     │
+│  │  │  + 调度) │ │  tor)  │ │ 队列)  │ │  收集)  │   │     │
+│  │  └──────────┘ └────────┘ └────────┘ └─────────┘   │     │
+│  │             4 容器 (共享网络)                       │     │
+│  └────────────────────────────────────────────────────┘     │
+│                                                              │
+│  ┌────────────────────────────────────────────────────┐     │
+│  │              awx-projects-claim (PVC)              │     │
+│  │     100Gi SFS Turbo /var/lib/awx/projects          │     │
+│  │   Web 和 Task 容器同时挂载，共享项目文件            │     │
+│  └────────────────────────────────────────────────────┘     │
+└─────────────────────────────────────────────────────────────┘
+```
+
+### Pod 角色详解
+
+#### 1. awx-operator (Operator Pod)
+
+| 容器 | 镜像 | 说明 |
+|------|------|------|
+| awx-operator | `awx-operator:2.19.1` | 监听 AWX CR，自动创建/管理 web、task、postgres 等资源 |
+
+**工作流程**：
+```
+用户创建 AWX CR → Operator 检测到变化
+  → 创建 PostgreSQL StatefulSet
+  → 创建 Redis (内嵌在 web/task pod)
+  → 创建 Web Deployment (nginx + uwsgi + daphne)
+  → 创建 Task Deployment (task + ee + redis + rsyslog)
+  → 执行数据库迁移
+  → 验证所有 Pod 就绪
+```
+
+#### 2. awx-web (Web Pod) — 3 容器
+
+| 容器 | 镜像 | 端口 | 说明 |
+|------|------|------|------|
+| `redis` | `redis:7` | 6379 | 缓存和消息队列（每个 web/task pod 独立运行） |
+| `awx-web` | `awx:24.6.1` | 8052 | Django 应用 + nginx 反向代理 + uwsgi WSGI + daphne ASGI |
+| `awx-rsyslog` | `awx:24.6.1` | — | 日志转发 |
+
+**请求流向**：
+```
+用户浏览器 → LoadBalancer:80 → nginx:8052
+  → uwsgi (Django REST API)  ←→ PostgreSQL:5432
+  → daphne (WebSocket)        ←→ Redis:6379
+```
+
+#### 3. awx-task (Task Pod) — 4 容器
+
+| 容器 | 镜像 | 说明 |
+|------|------|------|
+| `redis` | `redis:7` | 任务队列和缓存 |
+| `awx-task` | `awx:24.6.1` | 作业调度、执行、回调处理 |
+| `awx-ee` | `awx-ee:24.6.1` | Receptor 节点，接收和执行 Ansible 作业 |
+| `awx-rsyslog` | `awx:24.6.1` | 作业日志收集转发 |
+
+**作业执行流程**：
+```
+用户通过 API 启动作业
+  → awx-task 创建作业记录
+  → Receptor 网格分配执行节点
+  → awx-ee 容器内执行 Ansible Playbook
+  → 实时日志通过 rsyslog 回传
+  → 作业结果写入 PostgreSQL
+```
+
+#### 4. awx-postgres-15 (数据库 Pod)
+
+| 容器 | 镜像 | 说明 |
+|------|------|------|
+| postgresql | `postgresql-15:latest` | AWX 主数据库，持久化所有业务数据 |
+
+### 容器间通信
+
+```
+awx-web ──HTTP──→ awx-task  (API 调用)
+awx-web ──SQL───→ PostgreSQL (数据读写)
+awx-task ──SQL───→ PostgreSQL (数据读写)
+awx-web ──TCP───→ Redis      (缓存/队列)
+awx-task ──TCP───→ Redis      (任务队列)
+awx-task ──Receptor──→ awx-ee (网格通信)
+                    ↕
+                Receptor 网格
+                    ↕
+           其他执行节点 (横向扩展)
+```
+
+### 关键设计决策
+
+| 决策 | 方案 | 理由 |
+|------|------|------|
+| Redis 位置 | 内嵌在 web/task pod | 避免外部 Redis 依赖，简化运维 |
+| PostgreSQL | 独立 StatefulSet + PVC | 数据持久化，独立扩缩容 |
+| 作业执行 | Receptor 网格 | 支持大规模集群，多节点分发 |
+| Projects 存储 | 独立 PV (SFS Turbo RWX) | Web 和 Task 共享项目文件 |
+| 镜像仓库 | 华为云 SWR | 国内网络稳定，避免 Docker Hub/quay.io 不通 |
+
 ## 镜像清单
 
 所有镜像已提前推送到华为云 SWR:

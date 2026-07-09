@@ -8,7 +8,167 @@ spec:
     kind: CustomResourceDefinition
     metadata:
       name: helmreleases.osc.huaweicloud.com
+  role: serviceEntity
+  displayName: "AWX"
+  description: "Ansible AWX - Web UI, REST API, and task engine for Ansible"
   serviceEntityDependencies: []
+  descriptors:
+    spec:
+      - displayName: "SWR 镜像仓库地址"
+        description: "华为云 SWR 镜像仓库地址"
+        path: spec.values.global.imageRegistry
+        x-descriptors:
+          - "urn:alm:descriptor:com.tectonic.ui:text"
+      - displayName: "部署命名空间"
+        description: "Kubernetes 命名空间"
+        path: spec.values.global.namespace
+        x-descriptors:
+          - "urn:alm:descriptor:com.tectonic.ui:text"
+      - displayName: "AWX 镜像版本"
+        description: "awx 主应用镜像标签"
+        path: spec.values.images.awx
+        x-descriptors:
+          - "urn:alm:descriptor:com.tectonic.ui:text"
+      - displayName: "Operator 镜像版本"
+        description: "awx-operator 镜像标签"
+        path: spec.values.images.awxOperator
+        x-descriptors:
+          - "urn:alm:descriptor:com.tectonic.ui:text"
+      - displayName: "EE 镜像版本"
+        description: "awx-ee 执行环境镜像标签"
+        path: spec.values.images.awxEE
+        x-descriptors:
+          - "urn:alm:descriptor:com.tectonic.ui:text"
+      - displayName: "Redis 镜像版本"
+        description: "Redis 镜像标签"
+        path: spec.values.images.redis
+        x-descriptors:
+          - "urn:alm:descriptor:com.tectonic.ui:text"
+      - displayName: "PostgreSQL 镜像版本"
+        description: "PostgreSQL 镜像标签"
+        path: spec.values.images.postgresql
+        x-descriptors:
+          - "urn:alm:descriptor:com.tectonic.ui:text"
+      - displayName: "镜像拉取策略"
+        description: "Always / IfNotPresent / Never"
+        path: spec.values.images.pullPolicy
+        x-descriptors:
+          - "urn:alm:descriptor:com.tectonic.ui:select"
+      - displayName: "SWR 用户名"
+        description: "华为云 SWR 登录用户名"
+        path: spec.values.swr.username
+        x-descriptors:
+          - "urn:alm:descriptor:com.tectonic.ui:text"
+      - displayName: "SWR 密码"
+        description: "华为云 SWR 登录密码或临时 token"
+        path: spec.values.swr.password
+        x-descriptors:
+          - "urn:alm:descriptor:com.tectonic.ui:password"
+      - displayName: "Admin 用户名"
+        description: "AWX 管理员用户名"
+        path: spec.values.admin.user
+        x-descriptors:
+          - "urn:alm:descriptor:com.tectonic.ui:text"
+      - displayName: "Admin 密码"
+        description: "AWX 管理员密码"
+        path: spec.values.admin.password
+        x-descriptors:
+          - "urn:alm:descriptor:com.tectonic.ui:password"
+      - displayName: "Admin 邮箱"
+        description: "AWX 管理员邮箱"
+        path: spec.values.admin.email
+        x-descriptors:
+          - "urn:alm:descriptor:com.tectonic.ui:text"
+      - displayName: "服务暴露类型"
+        description: "LoadBalancer / NodePort / ClusterIP"
+        path: spec.values.service.type
+        x-descriptors:
+          - "urn:alm:descriptor:com.tectonic.ui:select"
+      - displayName: "服务端口"
+        description: "外部访问端口"
+        path: spec.values.service.port
+        x-descriptors:
+          - "urn:alm:descriptor:com.tectonic.ui:number"
+      - displayName: "PostgreSQL 存储大小"
+        description: "数据库持久卷大小"
+        path: spec.values.storage.postgres.size
+        x-descriptors:
+          - "urn:alm:descriptor:com.tectonic.ui:text"
+      - displayName: "PostgreSQL 存储类"
+        description: "CCE 存储类，如 csi-disk"
+        path: spec.values.storage.postgres.storageClass
+        x-descriptors:
+          - "urn:alm:descriptor:com.tectonic.ui:select"
+      - displayName: "启用 Projects 持久化"
+        description: "是否持久化 Playbook 项目文件"
+        path: spec.values.storage.projects.enabled
+        x-descriptors:
+          - "urn:alm:descriptor:com.tectonic.ui:booleanSwitch"
+      - displayName: "Projects 已有 PVC"
+        description: "使用已有的 PVC 名称"
+        path: spec.values.storage.projects.existingClaim
+        x-descriptors:
+          - "urn:alm:descriptor:com.tectonic.ui:text"
+      - displayName: "Projects 存储类"
+        description: "Projects 动态创建时使用的存储类"
+        path: spec.values.storage.projects.storageClass
+        x-descriptors:
+          - "urn:alm:descriptor:com.tectonic.ui:select"
+      - displayName: "Projects 存储大小"
+        description: "Projects 持久卷大小"
+        path: spec.values.storage.projects.size
+        x-descriptors:
+          - "urn:alm:descriptor:com.tectonic.ui:text"
+      - displayName: "Projects 访问模式"
+        description: "ReadWriteMany / ReadWriteOnce"
+        path: spec.values.storage.projects.accessMode
+        x-descriptors:
+          - "urn:alm:descriptor:com.tectonic.ui:select"
+      - displayName: "Web CPU"
+        description: "Web 容器 CPU 请求"
+        path: spec.values.resources.web.requests.cpu
+        x-descriptors:
+          - "urn:alm:descriptor:com.tectonic.ui:text"
+      - displayName: "Web 内存"
+        description: "Web 容器内存请求"
+        path: spec.values.resources.web.requests.memory
+        x-descriptors:
+          - "urn:alm:descriptor:com.tectonic.ui:text"
+      - displayName: "Task CPU"
+        description: "Task 容器 CPU 请求"
+        path: spec.values.resources.task.requests.cpu
+        x-descriptors:
+          - "urn:alm:descriptor:com.tectonic.ui:text"
+      - displayName: "Task 内存"
+        description: "Task 容器内存请求"
+        path: spec.values.resources.task.requests.memory
+        x-descriptors:
+          - "urn:alm:descriptor:com.tectonic.ui:text"
+      - displayName: "PostgreSQL CPU"
+        description: "PostgreSQL 容器 CPU 请求"
+        path: spec.values.resources.postgres.requests.cpu
+        x-descriptors:
+          - "urn:alm:descriptor:com.tectonic.ui:text"
+      - displayName: "PostgreSQL 内存"
+        description: "PostgreSQL 容器内存请求"
+        path: spec.values.resources.postgres.requests.memory
+        x-descriptors:
+          - "urn:alm:descriptor:com.tectonic.ui:text"
+      - displayName: "Web 副本数"
+        description: "Web Pod 副本数"
+        path: spec.values.replicas.web
+        x-descriptors:
+          - "urn:alm:descriptor:com.tectonic.ui:number"
+      - displayName: "Task 副本数"
+        description: "Task Pod 副本数"
+        path: spec.values.replicas.task
+        x-descriptors:
+          - "urn:alm:descriptor:com.tectonic.ui:number"
+      - displayName: "预加载示例数据"
+        description: "是否创建预加载的 Demo 数据"
+        path: spec.values.createPreloadData
+        x-descriptors:
+          - "urn:alm:descriptor:com.tectonic.ui:booleanSwitch"
   defaultConfiguration: |-
     {
       "apiVersion": "osc.huaweicloud.com/v1",
@@ -21,17 +181,29 @@ spec:
         "chartVersion": "1.0.0",
         "values": {
           "global": {
-            "imageRegistry": "swr.cn-east-2.myhuaweicloud.com/dx_x2era"
+            "imageRegistry": "swr.cn-east-2.myhuaweicloud.com/dx_x2era",
+            "namespace": "cloud"
+          },
+          "images": {
+            "awx": "awx:24.6.1",
+            "awxOperator": "awx-operator:2.19.1",
+            "awxEE": "awx-ee:24.6.1",
+            "redis": "redis:7",
+            "postgresql": "postgresql-15:latest",
+            "pullPolicy": "IfNotPresent"
           },
           "swr": {
             "username": "",
             "password": ""
           },
           "admin": {
-            "password": ""
+            "user": "admin",
+            "password": "",
+            "email": "admin@example.com"
           },
           "service": {
-            "type": "LoadBalancer"
+            "type": "LoadBalancer",
+            "port": 80
           },
           "storage": {
             "postgres": {
@@ -40,9 +212,37 @@ spec:
             },
             "projects": {
               "enabled": true,
-              "existingClaim": "awx-projects-claim"
+              "existingClaim": "awx-projects-claim",
+              "storageClass": "csi-sfsturbo",
+              "size": "100Gi",
+              "accessMode": "ReadWriteMany"
             }
-          }
+          },
+          "resources": {
+            "web": {
+              "requests": {
+                "cpu": "500m",
+                "memory": "2Gi"
+              }
+            },
+            "task": {
+              "requests": {
+                "cpu": "500m",
+                "memory": "2Gi"
+              }
+            },
+            "postgres": {
+              "requests": {
+                "cpu": "100m",
+                "memory": "256Mi"
+              }
+            }
+          },
+          "replicas": {
+            "web": 1,
+            "task": 1
+          },
+          "createPreloadData": true
         }
       }
     }

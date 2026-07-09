@@ -1,0 +1,34 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: awx-operator
+  namespace: {{ include "awx.namespace" . }}
+  labels:
+    app.kubernetes.io/name: awx-operator
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: awx-operator
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: awx-operator
+    spec:
+      serviceAccountName: awx-operator
+      {{- if and .Values.swr.username .Values.swr.password }}
+      imagePullSecrets:
+        - name: swr-secret
+      {{- end }}
+      containers:
+        - name: awx-operator
+          image: {{ include "awx.operatorImage" . }}
+          imagePullPolicy: {{ .Values.images.pullPolicy }}
+          env:
+            - name: ANSIBLE_GATHERING
+              value: explicit
+            - name: WATCH_NAMESPACE
+              value: {{ include "awx.namespace" . }}
+          {{- if .Values.swr.username }}
+          # swr-secret 注入到 default SA 让 pod 自动使用
+          {{- end }}

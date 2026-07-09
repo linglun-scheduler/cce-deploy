@@ -1,0 +1,76 @@
+# ── AWX Helm Chart Values ──
+# 适用于华为云 CCE 环境，所有镜像来自 SWR
+
+global:
+  # SWR 镜像仓库地址
+  imageRegistry: swr.cn-east-2.myhuaweicloud.com/dx_x2era
+  # 命名空间
+  namespace: cloud
+
+# ── 镜像配置 ──
+images:
+  awx: awx:24.6.1
+  awxOperator: awx-operator:2.19.1
+  awxEE: awx-ee:24.6.1
+  redis: redis:7
+  postgresql: postgresql-15:latest
+  pullPolicy: IfNotPresent
+
+# ── SWR 镜像拉取凭证 ──
+# 从华为云 SWR 控制台获取临时登录命令
+# 部署时请通过 --set swr.username=... --set swr.password=... 传入
+swr:
+  username: ""
+  password: ""
+
+# ── 管理员 ──
+admin:
+  user: admin
+  password: "AWXAdmin123!"
+  email: admin@example.com
+
+# ── 服务 ──
+service:
+  type: LoadBalancer
+  port: 80
+  targetPort: 8052
+
+# ── 存储 ──
+storage:
+  # PostgreSQL 存储
+  postgres:
+    size: 10Gi
+    storageClass: csi-disk
+  
+  # Projects 持久化 (Playbook 项目文件)
+  projects:
+    enabled: true
+    # 使用已有的 PV (如 pv-efs-awx)
+    existingClaim: ""
+    # 或动态创建 (需指定 storageClass)
+    storageClass: csi-sfsturbo
+    size: 100Gi
+    accessMode: ReadWriteMany
+
+# ── 资源限制 ──
+resources:
+  web:
+    requests:
+      cpu: 500m
+      memory: 2Gi
+  task:
+    requests:
+      cpu: 500m
+      memory: 2Gi
+  postgres:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+
+# ── 副本数 ──
+replicas:
+  web: 1
+  task: 1
+
+# ── 额外配置 ──
+createPreloadData: true

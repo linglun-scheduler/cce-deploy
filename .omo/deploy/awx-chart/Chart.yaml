@@ -1,0 +1,14 @@
+apiVersion: v2
+name: awx
+description: Ansible AWX on Huawei Cloud CCE - Helm Chart
+type: application
+version: 1.0.0
+appVersion: "24.6.1"
+keywords:
+  - ansible
+  - awx
+  - automation
+home: https://github.com/ansible/awx
+sources:
+  - https://github.com/ansible/awx
+  - https://github.com/ansible/awx-operator

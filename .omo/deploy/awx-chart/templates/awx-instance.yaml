@@ -1,0 +1,73 @@
+apiVersion: awx.ansible.com/v1beta1
+kind: AWX
+metadata:
+  name: awx
+  namespace: {{ include "awx.namespace" . }}
+spec:
+  # ── 主镜像 ──
+  image: "{{ .Values.global.imageRegistry }}/awx"
+  image_version: "24.6.1"
+  image_pull_policy: {{ .Values.images.pullPolicy }}
+
+  # ── Redis ──
+  redis_image: "{{ .Values.global.imageRegistry }}/redis"
+  redis_image_version: "7"
+
+  # ── PostgreSQL ──
+  postgres_image: "{{ .Values.global.imageRegistry }}/postgresql-15"
+  postgres_image_version: latest
+
+  # ── 执行环境 ──
+  ee_images:
+    - name: "AWX EE 24.6.1"
+      image: "{{ .Values.global.imageRegistry }}/awx-ee:24.6.1"
+
+  # ── 管理员 ──
+  admin_user: {{ .Values.admin.user }}
+  admin_password_secret: awx-admin-password
+
+  # ── 服务 ──
+  service_type: {{ .Values.service.type }}
+  loadbalancer_port: {{ .Values.service.port }}
+
+  # ── 副本 ──
+  web_replicas: {{ .Values.replicas.web }}
+  task_replicas: {{ .Values.replicas.task }}
+
+  # ── 资源 ──
+  web_resource_requirements:
+    requests:
+      cpu: {{ .Values.resources.web.requests.cpu }}
+      memory: {{ .Values.resources.web.requests.memory }}
+  task_resource_requirements:
+    requests:
+      cpu: {{ .Values.resources.task.requests.cpu }}
+      memory: {{ .Values.resources.task.requests.memory }}
+  postgres_resource_requirements:
+    requests:
+      cpu: {{ .Values.resources.postgres.requests.cpu }}
+      memory: {{ .Values.resources.postgres.requests.memory }}
+
+  # ── PostgreSQL 存储 ──
+  postgres_storage_class: {{ .Values.storage.postgres.storageClass }}
+  postgres_storage_requirements:
+    requests:
+      storage: {{ .Values.storage.postgres.size }}
+
+  # ── Projects 持久化 ──
+  {{- if .Values.storage.projects.enabled }}
+  {{- if .Values.storage.projects.existingClaim }}
+  projects_existing_claim: {{ .Values.storage.projects.existingClaim }}
+  {{- else }}
+  projects_persistence: true
+  projects_storage_class: {{ .Values.storage.projects.storageClass }}
+  projects_storage_size: {{ .Values.storage.projects.size }}
+  projects_storage_access_mode: {{ .Values.storage.projects.accessMode }}
+  {{- end }}
+  {{- else }}
+  projects_persistence: false
+  {{- end }}
+
+  # ── 其他 ──
+  create_preload_data: {{ .Values.createPreloadData }}
+  admin_email: {{ .Values.admin.email }}

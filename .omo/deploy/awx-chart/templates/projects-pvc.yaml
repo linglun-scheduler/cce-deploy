@@ -1,0 +1,22 @@
+{{- if .Values.storage.projects.enabled }}
+{{- if not .Values.storage.projects.existingClaim }}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: awx-projects-claim
+  namespace: {{ include "awx.namespace" . }}
+  {{- if .Values.storage.projects.storageClass }}
+  annotations:
+    everest.io/enterprise-project-id: "fcf71dfc-efe0-4cb8-9188-67b2436fc057"
+  {{- end }}
+spec:
+  accessModes:
+    - {{ .Values.storage.projects.accessMode }}
+  resources:
+    requests:
+      storage: {{ .Values.storage.projects.size }}
+  {{- with .Values.storage.projects.storageClass }}
+  storageClassName: {{ . }}
+  {{- end }}
+{{- end }}
+{{- end }}

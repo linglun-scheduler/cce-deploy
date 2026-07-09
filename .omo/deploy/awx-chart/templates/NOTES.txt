@@ -1,0 +1,19 @@
+🎉 AWX 部署成功！
+
+获取访问信息：
+  export KUBECONFIG=/path/to/kubeconfig
+  kubectl -n {{ include "awx.namespace" . }} get svc awx-service
+
+查看 admin 密码：
+  kubectl -n {{ include "awx.namespace" . }} get secret awx-admin-password \
+    -o jsonpath='{.data.password}' | base64 -d
+
+访问 AWX Web UI：
+  http://<EXTERNAL-IP>
+
+注意：
+  1. ELB 分配可能需要 2-10 分钟
+  2. 若 SWR token 过期，更新 Secret:
+     kubectl -n {{ include "awx.namespace" . }} delete secret swr-secret
+     helm upgrade awx . --set swr.username=... --set swr.password=...
+  3. Operator 就绪后自动创建 AWX 组件，约 3-5 分钟

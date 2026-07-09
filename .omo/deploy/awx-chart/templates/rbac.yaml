@@ -1,0 +1,81 @@
+# ── AWX Operator 所需 RBAC ──
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: awx-operator
+  namespace: {{ include "awx.namespace" . }}
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: awx-operator
+  namespace: {{ include "awx.namespace" . }}
+rules:
+  - apiGroups: [""]
+    resources: ["configmaps", "endpoints", "events", "persistentvolumeclaims", "pods", "secrets", "services", "serviceaccounts"]
+    verbs: ["*"]
+  - apiGroups: [""]
+    resources: ["pods/exec"]
+    verbs: ["create"]
+  - apiGroups: ["apps"]
+    resources: ["deployments", "statefulsets"]
+    verbs: ["*"]
+  - apiGroups: ["networking.k8s.io"]
+    resources: ["ingresses"]
+    verbs: ["*"]
+  - apiGroups: ["awx.ansible.com"]
+    resources: ["awxs", "awxmeshingresses", "awxs/status", "awxbackups/status", "awxrestores/status", "awxmeshingresses/status"]
+    verbs: ["*"]
+  - apiGroups: ["rbac.authorization.k8s.io"]
+    resources: ["roles", "rolebindings"]
+    verbs: ["*"]
+  - apiGroups: ["coordination.k8s.io"]
+    resources: ["leases"]
+    verbs: ["*"]
+  - apiGroups: ["batch"]
+    resources: ["jobs"]
+    verbs: ["*"]
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: awx-operator
+  namespace: {{ include "awx.namespace" . }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: awx-operator
+subjects:
+  - kind: ServiceAccount
+    name: awx-operator
+    namespace: {{ include "awx.namespace" . }}
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: awx-operator-crd
+rules:
+  - apiGroups: ["apiextensions.k8s.io"]
+    resources: ["customresourcedefinitions"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["awx.ansible.com"]
+    resources: ["awxbackups", "awxrestores", "awxmeshingresses"]
+    verbs: ["*"]
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: awx-operator-crd
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: awx-operator-crd
+subjects:
+  - kind: ServiceAccount
+    name: awx-operator
+    namespace: {{ include "awx.namespace" . }}

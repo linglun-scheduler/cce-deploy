@@ -26,7 +26,8 @@ swr:
 # ── 管理员 ──
 admin:
   user: admin
-  password: "AWXAdmin123!"
+  # ⚠️ 部署时请通过 --set admin.password=<your-password> 修改
+  password: "CHANGE-ME-PLEASE!"
   email: admin@example.com
 
 # ── 服务 ──

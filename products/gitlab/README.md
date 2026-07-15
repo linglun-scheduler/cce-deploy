@@ -64,9 +64,20 @@ kubectl -n gitlab wait --for=condition=ready pod -l app=gitlab --timeout=300s
 
 # 获取 LoadBalancer IP
 kubectl -n gitlab get svc gitlab
+```
 
-# 访问 http://<EXTERNAL-IP>
-# 用设置的 admin 密码登录 root 用户
+### 访问
+
+| 方式 | 地址 | 说明 |
+|------|------|------|
+| ELB (内网) | `http://10.240.201.166` | VPC 内网访问 |
+| NodePort | `http://<节点IP>:30661` | 外网访问 |
+
+### 首次使用
+
+注册页面创建第一个用户（自动成为管理员）：
+```
+http://10.240.201.166/users/sign_up
 ```
 
 ## OSC 部署

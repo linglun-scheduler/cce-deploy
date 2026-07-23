@@ -1,3 +1,7 @@
+{{- $awxImage := splitList ":" .Values.images.awx }}
+{{- $redisImage := splitList ":" .Values.images.redis }}
+{{- $postgresImage := splitList ":" .Values.images.postgresql }}
+{{- $eeImage := splitList ":" .Values.images.awxEE }}
 apiVersion: awx.ansible.com/v1beta1
 kind: AWX
 metadata:
@@ -5,22 +9,22 @@ metadata:
   namespace: {{ include "awx.namespace" . }}
 spec:
   # ── 主镜像 ──
-  image: "{{ .Values.global.imageRegistry }}/awx"
-  image_version: "24.6.1"
+  image: "{{ .Values.global.imageRegistry }}/{{ first $awxImage }}"
+  image_version: "{{ last $awxImage }}"
   image_pull_policy: {{ .Values.images.pullPolicy }}
 
   # ── Redis ──
-  redis_image: "{{ .Values.global.imageRegistry }}/redis"
-  redis_image_version: "7"
+  redis_image: "{{ .Values.global.imageRegistry }}/{{ first $redisImage }}"
+  redis_image_version: "{{ last $redisImage }}"
 
   # ── PostgreSQL ──
-  postgres_image: "{{ .Values.global.imageRegistry }}/postgresql-15"
-  postgres_image_version: latest
+  postgres_image: "{{ .Values.global.imageRegistry }}/{{ first $postgresImage }}"
+  postgres_image_version: "{{ last $postgresImage }}"
 
   # ── 执行环境 ──
   ee_images:
-    - name: "AWX EE 24.6.1"
-      image: "{{ .Values.global.imageRegistry }}/awx-ee:24.6.1"
+    - name: "AWX EE {{ last $eeImage }}"
+      image: "{{ .Values.global.imageRegistry }}/{{ .Values.images.awxEE }}"
 
   # ── 管理员 ──
   admin_user: {{ .Values.admin.user }}
